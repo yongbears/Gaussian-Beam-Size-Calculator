@@ -72,7 +72,7 @@ class Propagation:
             'length': physical_length
         })
     
-    def simulate(self, step_size_mm: float = 1.0) -> pd.DataFrame:
+    def simulate(self, step_size_mm: float = 0.01) -> pd.DataFrame:
         """
         Args:
             step_size_mm: Step size for spatial slicing in [mm]
@@ -86,18 +86,10 @@ class Propagation:
         current_z = 0.0
         
         b = BeamParameters(wavelength, current_q)
-        history.append({
-            'z': current_z, 
-            'w': b.w, 
-            'R': b.R, 
-            'w0': b.w0, 
-            'label': 'Start'
-        })
+        history.append({'z': current_z, 'w': b.w, 'R': b.R, 'w0': b.w0, 'label': 'Start'})
         
         for elem in self.elements:
-            matrix = elem['matrix']
-            length = elem['length']
-            name = elem['name']
+            matrix = elem['matrix']; length = elem['length']; name = elem['name']
             
             if length > 0:
                 steps = int(np.ceil(length / step_size_mm))
@@ -124,55 +116,59 @@ class Propagation:
             else:
                 current_q = matrix.transform_q(current_q)
                 b = BeamParameters(wavelength, current_q)
-                history.append({
-                    'z': current_z, 
-                    'w': b.w, 
-                    'R': b.R, 
-                    'w0': b.w0,
-                    'label': name
-                })
+                history.append({'z': current_z, 'w': b.w, 'R': b.R, 'w0': b.w0,'label': name})
                 
         return pd.DataFrame(history)
 
     def plot(self, df: pd.DataFrame, title: str = "Beam Propagation"):
-        """
-        Visualizes the beam propagation profile with left-aligned staggered labels.
-        """
-        plt.figure(figsize=(12, 7))
+        plt.figure(figsize=(12, 8))
         
-        z_vals = df['z']
-        w_vals = df['w'] # [Unit: mm]
+        z_vals = df['z']; w_vals = df['w'] 
+        max_w = max(w_vals); max_z = max(z_vals)
         
-        max_w = max(w_vals)
-        max_z = max(z_vals)
-        
-        # Plot Beam Profile
+        # plot beam profile
         plt.plot(z_vals, w_vals, 'b-', linewidth=1.5, label='Beam Radius ($w$)')
         plt.plot(z_vals, -w_vals, 'b-', linewidth=1.5)
         plt.fill_between(z_vals, -w_vals, w_vals, color='blue', alpha=0.05)
         
-        # Filter Elements for Labeling
+        # filter optics for labeling
         elements_df = df[~df['label'].isin(['Start', 'prop'])].reset_index(drop=True)
         
-        # Stagger Levels
-        y_levels = [max_w * 1.1, max_w * 1.3]
-        text_offset = max_z * 0.01  # Slight offset for text
+        # plot
+        base_height = max_w * 1.2
+        step_height = max_w * 0.4 
         
         for i, row in elements_df.iterrows():
-            plt.axvline(x=row['z'], color='red', linestyle='--', alpha=0.7)
+            z_pos = row['z']
             
-            y_pos = y_levels[i % 2]
+            # 빨간 점선 (Optical Element 위치)
+            plt.axvline(x=z_pos, color='red', linestyle='--', alpha=0.5)
             
-            # Left-aligned text
-            plt.text(row['z'] + text_offset, y_pos, row['label'], 
-                     color='black', va='bottom', ha='left', fontsize=10)
+            # 3단 높이 조절 (0, 1, 2, 0, 1, 2...)
+            level = i % 4
+            text_y = base_height + (level * step_height)
+            
+            # 텍스트 출력
+            # rotation=90: 세로로 회전하여 가로 겹침 방지
+            # va='bottom': 텍스트 시작점이 라인 위쪽
+            plt.text(z_pos, text_y, row['label'], 
+                     #rotation=90, 
+                     color='black', 
+                     va='bottom', 
+                     ha='center', 
+                     fontsize=9,
+                     backgroundcolor='white') # 텍스트 뒤에 흰 배경을 둬서 가독성 확보
 
         plt.xlabel('Propagation Distance (mm)', fontsize=12)
         plt.ylabel('Beam Radius (mm)', fontsize=12)
         plt.title(title, fontsize=14)
         plt.grid(True, linestyle=':', alpha=0.6)
         
-        # Adjust Y-limits to fit labels
-        plt.ylim(-max_w*1.6, max_w*1.6)
+        # 텍스트가 잘리지 않도록 Y축 상단 여유 공간 확보 (중요!)
+        plt.ylim(-max_w * 1.5, max_w * 3.5) 
+        
+        plt.legend(loc='lower right')
         plt.tight_layout()
         plt.show()
+
+        

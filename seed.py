@@ -5,7 +5,7 @@ from Gaussian_propagation import BeamParameters, Propagation
 
 def seed():
     wavelength_1 = 800e-6   # mm
-    w_BS = 2.6697           # mm
+    w_BS = 2.326          # mm
     
     # initial q-parameter (800 nm)
     z_R_init = (np.pi * w_BS**2) / wavelength_1

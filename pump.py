@@ -4,7 +4,7 @@ from Gaussian_propagation import BeamParameters, Propagation
 
 def pump():
     wavelength = 400e-6     # mm
-    w_BS = 2.6697           # mm
+    w_BS = 2.326      # mm
     
     # initial q-parmeter (assume collimation)
     z_R_init = (np.pi * w_BS**2) / wavelength
